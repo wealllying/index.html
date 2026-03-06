@@ -167,12 +167,43 @@ h1 em { font-style: italic; color: var(--gold); }
 @keyframes sl { 0%{left:-100%} 60%{left:100%} 100%{left:100%} }
 
 @media (max-width: 768px) {
-  nav { padding: 20px 24px; }
+  /* Intro */
+  .i-logo { width: 200px; }
+  .i-slogan { font-size: 16px; margin-top: 14px; }
+
+  /* Nav */
+  nav { padding: 16px 20px; }
   .nav-links { display: none; }
-  .hero-content { padding: 0 24px 80px; }
+  .nav-logo img { height: 32px; }
+  .nav-btn { padding: 9px 18px; font-size: 13px; }
+
+  /* Hero content */
+  .hero-content { padding: 0 20px 40px; max-width: 100%; }
+
+  /* Badge */
+  .hero-badge { font-size: 10px; padding: 6px 14px; margin-bottom: 18px; }
+
+  /* Heading */
+  h1 { font-size: clamp(40px, 12vw, 64px); margin-bottom: 14px; }
+
+  /* Subtitle */
+  .hero-sub { font-size: 18px; margin-bottom: 28px; }
+
+  /* Buttons */
+  .hero-actions { flex-direction: column; align-items: flex-start; gap: 14px; }
+  .btn-main { padding: 14px 32px; font-size: 15px; }
+  .btn-ghost { font-size: 14px; }
+
+  /* Stats */
   .hero-stats { display: none; }
-  .scroll-hint { left: 24px; }
+
+  /* Scroll hint */
+  .scroll-hint { left: 20px; bottom: 16px; }
+
+  /* Video position for mobile */
+  .hero-video { object-position: center center; }
 }
+
 </style>
 </head>
 <body>
