@@ -1,0 +1,1196 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>PlataYa - Demo</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --navy: #1A3560;
+    --teal: #2E9E82;
+    --gold: #D99420;
+    --cream: #F7F2EA;
+    --wa-green: #075E54;
+    --wa-green-light: #128C7E;
+    --wa-teal-dark: #054640;
+    --wa-bg: #ECE5DD;
+    --wa-bubble-out: #DCF8C6;
+    --wa-bubble-in: #FFFFFF;
+    --wa-header: #075E54;
+    --wa-input-bg: #F0F0F0;
+    --wa-time: #667781;
+  }
+
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--navy);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    overflow: hidden;
+  }
+
+  /* Landing / splash overlay */
+  #splash {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    background: linear-gradient(135deg, var(--navy) 0%, #0F2240 100%);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    transition: opacity 0.6s ease, visibility 0.6s ease;
+  }
+  #splash.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+
+  .splash-logo {
+    width: 120px;
+    height: 120px;
+    background: linear-gradient(135deg, var(--teal), var(--gold));
+    border-radius: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 24px;
+    box-shadow: 0 20px 60px rgba(46, 158, 130, 0.3);
+    animation: pulse-glow 2s ease-in-out infinite;
+  }
+  @keyframes pulse-glow {
+    0%, 100% { box-shadow: 0 20px 60px rgba(46, 158, 130, 0.3); }
+    50% { box-shadow: 0 20px 80px rgba(46, 158, 130, 0.5); }
+  }
+  .splash-logo svg { width: 64px; height: 64px; }
+
+  .splash-title {
+    font-size: 42px;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: -1px;
+    margin-bottom: 8px;
+  }
+  .splash-title span { color: var(--gold); }
+
+  .splash-sub {
+    color: rgba(255,255,255,0.6);
+    font-size: 16px;
+    margin-bottom: 48px;
+    text-align: center;
+    max-width: 320px;
+    line-height: 1.5;
+  }
+
+  .splash-btn {
+    background: linear-gradient(135deg, var(--teal), #25B97D);
+    color: #fff;
+    border: none;
+    padding: 16px 48px;
+    border-radius: 50px;
+    font-size: 17px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    box-shadow: 0 8px 32px rgba(46, 158, 130, 0.4);
+    font-family: inherit;
+  }
+  .splash-btn:hover { transform: translateY(-2px); box-shadow: 0 12px 40px rgba(46, 158, 130, 0.5); }
+  .splash-btn:active { transform: translateY(0); }
+
+  .splash-badge {
+    position: absolute;
+    bottom: 32px;
+    color: rgba(255,255,255,0.3);
+    font-size: 12px;
+  }
+
+  /* Phone frame */
+  .phone-frame {
+    width: 390px;
+    height: 844px;
+    background: #000;
+    border-radius: 50px;
+    padding: 8px;
+    box-shadow: 0 40px 100px rgba(0,0,0,0.5), inset 0 0 0 2px rgba(255,255,255,0.1);
+    position: relative;
+  }
+  .phone-inner {
+    width: 100%;
+    height: 100%;
+    border-radius: 44px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    background: var(--wa-bg);
+  }
+
+  /* Notch */
+  .phone-notch {
+    position: absolute;
+    top: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 160px;
+    height: 34px;
+    background: #000;
+    border-radius: 0 0 20px 20px;
+    z-index: 10;
+  }
+
+  /* Status bar */
+  .status-bar {
+    height: 54px;
+    background: var(--wa-header);
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    padding: 0 24px 6px;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+  .status-bar-right { display: flex; gap: 6px; align-items: center; }
+  .status-bar-right svg { width: 16px; height: 16px; fill: #fff; }
+
+  /* Chat header */
+  .chat-header {
+    height: 56px;
+    background: var(--wa-header);
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    gap: 10px;
+    flex-shrink: 0;
+  }
+  .chat-header-back { color: #fff; display: flex; align-items: center; }
+  .chat-header-back svg { width: 24px; height: 24px; fill: #fff; }
+
+  .chat-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--teal), var(--gold));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .chat-avatar svg { width: 22px; height: 22px; }
+
+  .chat-header-info { flex: 1; }
+  .chat-header-name { color: #fff; font-size: 16px; font-weight: 600; }
+  .chat-header-status { color: rgba(255,255,255,0.7); font-size: 12px; }
+
+  .chat-header-actions { display: flex; gap: 16px; }
+  .chat-header-actions svg { width: 22px; height: 22px; fill: #fff; opacity: 0.9; }
+
+  /* Chat area */
+  .chat-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    background: var(--wa-bg);
+    background-image: url("data:image/svg+xml,%3Csvg width='400' height='400' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3Cpattern id='p' width='80' height='80' patternUnits='userSpaceOnUse'%3E%3Ccircle cx='10' cy='10' r='1.5' fill='%23c5bfb2' opacity='0.25'/%3E%3Ccircle cx='50' cy='50' r='1' fill='%23c5bfb2' opacity='0.2'/%3E%3Ccircle cx='30' cy='65' r='1.2' fill='%23c5bfb2' opacity='0.15'/%3E%3C/pattern%3E%3C/defs%3E%3Crect fill='url(%23p)' width='400' height='400'/%3E%3C/svg%3E");
+    scroll-behavior: smooth;
+  }
+  .chat-body::-webkit-scrollbar { width: 4px; }
+  .chat-body::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 4px; }
+
+  /* Date badge */
+  .date-badge {
+    align-self: center;
+    background: rgba(255,255,255,0.85);
+    color: var(--wa-time);
+    font-size: 11px;
+    padding: 4px 12px;
+    border-radius: 8px;
+    margin: 8px 0;
+    box-shadow: 0 1px 1px rgba(0,0,0,0.05);
+  }
+
+  /* Messages */
+  .msg-row {
+    display: flex;
+    margin-bottom: 2px;
+    animation: msgIn 0.3s ease-out;
+  }
+  @keyframes msgIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .msg-row.sent { justify-content: flex-end; }
+  .msg-row.received { justify-content: flex-start; }
+
+  .msg-bubble {
+    max-width: 80%;
+    padding: 6px 10px 6px 10px;
+    border-radius: 8px;
+    font-size: 14px;
+    line-height: 1.45;
+    position: relative;
+    word-wrap: break-word;
+    box-shadow: 0 1px 1px rgba(0,0,0,0.08);
+  }
+  .msg-row.sent .msg-bubble {
+    background: var(--wa-bubble-out);
+    border-top-right-radius: 0;
+    color: #303030;
+  }
+  .msg-row.received .msg-bubble {
+    background: var(--wa-bubble-in);
+    border-top-left-radius: 0;
+    color: #303030;
+  }
+
+  .msg-time {
+    font-size: 10.5px;
+    color: var(--wa-time);
+    float: right;
+    margin: 6px 0 -4px 10px;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+  }
+  .msg-time svg { width: 16px; height: 12px; fill: #53BDEB; }
+
+  /* Fee comparison card inside bubble */
+  .fee-card {
+    background: linear-gradient(135deg, var(--navy), #22406E);
+    border-radius: 10px;
+    padding: 14px;
+    margin: 8px 0 4px;
+    color: #fff;
+  }
+  .fee-card-title {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--gold);
+    margin-bottom: 10px;
+    font-weight: 600;
+  }
+  .fee-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+  }
+  .fee-row + .fee-row { border-top: 1px solid rgba(255,255,255,0.1); }
+  .fee-label { font-size: 13px; }
+  .fee-value { font-weight: 700; font-size: 14px; }
+  .fee-value.good { color: #4CD964; }
+  .fee-value.bad { color: #FF6B6B; }
+  .fee-savings {
+    text-align: center;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(255,255,255,0.15);
+    font-size: 13px;
+    color: var(--gold);
+    font-weight: 600;
+  }
+
+  /* PIN card */
+  .pin-card {
+    background: linear-gradient(135deg, var(--teal), #25B97D);
+    border-radius: 12px;
+    padding: 16px;
+    margin: 8px 0 4px;
+    text-align: center;
+    color: #fff;
+  }
+  .pin-card-icon { font-size: 28px; margin-bottom: 6px; }
+  .pin-card-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; opacity: 0.8; margin-bottom: 6px; }
+  .pin-card-number {
+    font-size: 32px;
+    font-weight: 700;
+    letter-spacing: 8px;
+    font-family: 'Courier New', monospace;
+    margin: 8px 0;
+  }
+  .pin-card-info { font-size: 12px; opacity: 0.85; line-height: 1.4; }
+
+  /* Delivery options card */
+  .delivery-card {
+    background: linear-gradient(135deg, var(--navy), #22406E);
+    border-radius: 12px;
+    padding: 14px;
+    margin: 8px 0 4px;
+    color: #fff;
+  }
+  .delivery-card-title {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--gold);
+    margin-bottom: 12px;
+    font-weight: 600;
+  }
+  .delivery-option {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px;
+    border-radius: 10px;
+    background: rgba(255,255,255,0.07);
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .delivery-option:last-child { margin-bottom: 0; }
+  .delivery-option:hover { background: rgba(255,255,255,0.14); }
+  .delivery-option-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 20px;
+  }
+  .delivery-option-icon.atm { background: linear-gradient(135deg, var(--teal), #25B97D); }
+  .delivery-option-icon.bank { background: linear-gradient(135deg, #4A90D9, #2E6BBF); }
+  .delivery-option-icon.cash { background: linear-gradient(135deg, var(--gold), #E8A830); }
+  .delivery-option-info { flex: 1; }
+  .delivery-option-name { font-size: 13px; font-weight: 600; margin-bottom: 2px; }
+  .delivery-option-desc { font-size: 11px; opacity: 0.7; line-height: 1.3; }
+  .delivery-option-badge {
+    font-size: 10px;
+    padding: 3px 8px;
+    border-radius: 10px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .delivery-option-badge.popular { background: var(--teal); color: #fff; }
+  .delivery-option-badge.fast { background: rgba(255,255,255,0.15); color: rgba(255,255,255,0.8); }
+
+  /* Bank deposit confirmation card */
+  .bank-card {
+    background: linear-gradient(135deg, #4A90D9, #2E6BBF);
+    border-radius: 12px;
+    padding: 16px;
+    margin: 8px 0 4px;
+    text-align: center;
+    color: #fff;
+  }
+  .bank-card-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; opacity: 0.8; margin-bottom: 8px; }
+  .bank-card-amount { font-size: 26px; font-weight: 700; margin: 4px 0; }
+  .bank-card-ref { font-family: 'Courier New', monospace; font-size: 14px; opacity: 0.9; margin: 8px 0; letter-spacing: 1px; }
+  .bank-card-info { font-size: 12px; opacity: 0.85; line-height: 1.4; }
+
+  /* Typing indicator */
+  .typing-indicator {
+    display: flex;
+    gap: 4px;
+    padding: 12px 16px;
+    align-items: center;
+  }
+  .typing-indicator span {
+    width: 7px;
+    height: 7px;
+    background: #999;
+    border-radius: 50%;
+    animation: typingDot 1.4s infinite;
+  }
+  .typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
+  .typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes typingDot {
+    0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+    30% { transform: translateY(-6px); opacity: 1; }
+  }
+
+  /* Input bar */
+  .chat-input-bar {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+    padding: 6px 8px;
+    background: var(--wa-bg);
+    flex-shrink: 0;
+  }
+  .chat-input-wrapper {
+    flex: 1;
+    background: #fff;
+    border-radius: 24px;
+    display: flex;
+    align-items: flex-end;
+    padding: 4px 12px;
+    min-height: 44px;
+  }
+  .chat-input-wrapper svg { width: 24px; height: 24px; fill: #8696A0; flex-shrink: 0; margin-bottom: 6px; }
+  #userInput {
+    flex: 1;
+    border: none;
+    outline: none;
+    font-size: 15px;
+    font-family: inherit;
+    resize: none;
+    max-height: 100px;
+    padding: 8px 8px;
+    line-height: 1.35;
+    color: #303030;
+    background: transparent;
+  }
+  #userInput::placeholder { color: #8696A0; }
+
+  .send-btn {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: var(--teal);
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background 0.2s, transform 0.1s;
+  }
+  .send-btn:hover { background: var(--wa-green-light); }
+  .send-btn:active { transform: scale(0.95); }
+  .send-btn svg { width: 22px; height: 22px; fill: #fff; }
+
+  /* Quick reply chips */
+  .quick-replies {
+    display: flex;
+    gap: 6px;
+    padding: 6px 12px;
+    overflow-x: auto;
+    background: var(--wa-bg);
+    flex-shrink: 0;
+  }
+  .quick-replies::-webkit-scrollbar { display: none; }
+  .quick-chip {
+    white-space: nowrap;
+    padding: 8px 16px;
+    border-radius: 20px;
+    border: 1.5px solid var(--teal);
+    color: var(--teal);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    background: #fff;
+    transition: all 0.2s;
+    font-family: inherit;
+  }
+  .quick-chip:hover { background: var(--teal); color: #fff; }
+
+  /* API key modal */
+  #apiModal {
+    position: fixed;
+    inset: 0;
+    z-index: 2000;
+    background: rgba(0,0,0,0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    backdrop-filter: blur(8px);
+  }
+  #apiModal.hidden { display: none; }
+  .modal-box {
+    background: #fff;
+    border-radius: 20px;
+    padding: 32px;
+    width: 380px;
+    max-width: 90vw;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  }
+  .modal-box h2 {
+    color: var(--navy);
+    font-size: 20px;
+    margin-bottom: 8px;
+  }
+  .modal-box p {
+    color: #666;
+    font-size: 13px;
+    margin-bottom: 20px;
+    line-height: 1.5;
+  }
+  .modal-box input {
+    width: 100%;
+    padding: 12px 16px;
+    border: 2px solid #E0E0E0;
+    border-radius: 12px;
+    font-size: 14px;
+    font-family: inherit;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .modal-box input:focus { border-color: var(--teal); }
+  .modal-box button {
+    width: 100%;
+    margin-top: 16px;
+    padding: 14px;
+    background: linear-gradient(135deg, var(--teal), #25B97D);
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    transition: transform 0.1s;
+  }
+  .modal-box button:active { transform: scale(0.98); }
+  .modal-skip {
+    display: block;
+    text-align: center;
+    margin-top: 12px;
+    color: #999;
+    font-size: 12px;
+    cursor: pointer;
+    text-decoration: underline;
+  }
+
+  /* Responsive */
+  @media (max-width: 420px) {
+    body { background: var(--wa-bg); }
+    .phone-frame {
+      width: 100vw;
+      height: 100vh;
+      border-radius: 0;
+      padding: 0;
+      box-shadow: none;
+    }
+    .phone-inner { border-radius: 0; }
+    .phone-notch { display: none; }
+    .status-bar { height: 44px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Splash screen -->
+<div id="splash">
+  <div class="splash-logo">
+    <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="32" cy="32" r="28" stroke="#fff" stroke-width="3"/>
+      <path d="M22 32 L30 24 L30 28 L42 28 L42 36 L30 36 L30 40 Z" fill="#fff"/>
+      <line x1="18" y1="44" x2="46" y2="44" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/>
+      <line x1="22" y1="48" x2="42" y2="48" stroke="#fff" stroke-width="2" stroke-linecap="round" opacity="0.6"/>
+    </svg>
+  </div>
+  <div class="splash-title">Plata<span>Ya</span></div>
+  <p class="splash-sub">Envia dinero a Republica Dominicana al instante. Mas rapido. Mas barato. Mas facil.</p>
+  <button class="splash-btn" onclick="startDemo()">Iniciar Demo</button>
+  <div class="splash-badge">Demo Interactivo &middot; Investor Preview</div>
+</div>
+
+<!-- API key modal -->
+<div id="apiModal" class="hidden">
+  <div class="modal-box">
+    <h2>Anthropic API Key</h2>
+    <p>Enter your Anthropic API key to enable live AI responses. The key is only used client-side and never stored on any server.</p>
+    <input type="password" id="apiKeyInput" placeholder="sk-ant-..." />
+    <button onclick="saveApiKey()">Connect</button>
+    <span class="modal-skip" onclick="skipApiKey()">Skip - use scripted demo instead</span>
+  </div>
+</div>
+
+<!-- Phone frame -->
+<div class="phone-frame">
+  <div class="phone-notch"></div>
+  <div class="phone-inner">
+
+    <!-- Status bar -->
+    <div class="status-bar">
+      <span>9:41</span>
+      <div class="status-bar-right">
+        <svg viewBox="0 0 16 16"><path d="M1 11h2v4H1zM5 8h2v7H5zM9 5h2v10H9zM13 2h2v13h-2z"/></svg>
+        <svg viewBox="0 0 16 16"><path d="M8 3C4.5 3 1.6 5.1.3 8c1.3 2.9 4.2 5 7.7 5s6.4-2.1 7.7-5C14.4 5.1 11.5 3 8 3zm0 8.3A3.3 3.3 0 1 1 8 4.7a3.3 3.3 0 0 1 0 6.6z"/></svg>
+        <svg viewBox="0 0 20 12"><rect x="0" y="1" width="16" height="10" rx="2" stroke="#fff" stroke-width="1.5" fill="none"/><rect x="17" y="4" width="2" height="4" rx="0.5" fill="#fff"/><rect x="2" y="3" width="12" height="6" rx="1" fill="#4CD964"/></svg>
+      </div>
+    </div>
+
+    <!-- Chat header -->
+    <div class="chat-header">
+      <div class="chat-header-back">
+        <svg viewBox="0 0 24 24"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
+      </div>
+      <div class="chat-avatar">
+        <svg viewBox="0 0 64 64" fill="none">
+          <circle cx="32" cy="32" r="28" stroke="#fff" stroke-width="2.5"/>
+          <path d="M22 32 L30 24 L30 28 L42 28 L42 36 L30 36 L30 40 Z" fill="#fff"/>
+          <line x1="20" y1="44" x2="44" y2="44" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="chat-header-info">
+        <div class="chat-header-name">PlataYa</div>
+        <div class="chat-header-status" id="headerStatus">en linea</div>
+      </div>
+      <div class="chat-header-actions">
+        <svg viewBox="0 0 24 24"><path d="M15 12c0 1.66-1.34 3-3 3s-3-1.34-3-3V6c0-1.66 1.34-3 3-3s3 1.34 3 3v6zm-1 0V6c0-1.1-.9-2-2-2s-2 .9-2 2v6c0 1.1.9 2 2 2s2-.9 2-2zm4 0c0 2.76-2.24 5-5 5v2h3v1H8v-1h3v-2c-2.76 0-5-2.24-5-5h1c0 2.21 1.79 4 4 4s4-1.79 4-4h1z"/></svg>
+        <svg viewBox="0 0 24 24"><path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>
+      </div>
+    </div>
+
+    <!-- Chat body -->
+    <div class="chat-body" id="chatBody">
+      <div class="date-badge">Hoy</div>
+    </div>
+
+    <!-- Quick replies -->
+    <div class="quick-replies" id="quickReplies"></div>
+
+    <!-- Input bar -->
+    <div class="chat-input-bar">
+      <div class="chat-input-wrapper">
+        <svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm3.5-9c.83 0 1.5-.67 1.5-1.5S16.33 8 15.5 8 14 8.67 14 9.5s.67 1.5 1.5 1.5zm-7 0c.83 0 1.5-.67 1.5-1.5S9.33 8 8.5 8 7 8.67 7 9.5 7.67 11 8.5 11zm3.5 6.5c2.33 0 4.31-1.46 5.11-3.5H6.89c.8 2.04 2.78 3.5 5.11 3.5z"/></svg>
+        <textarea id="userInput" rows="1" placeholder="Mensaje" onkeydown="handleKey(event)"></textarea>
+        <svg viewBox="0 0 24 24"><path d="M1.5 4.5l1.09.46L12 9.5l-9.41 4.54L1.5 14.5V4.5m0-3L.04 9.21 16 12 .04 14.79 1.5 22.5l22.5-10.5L1.5 1.5z" transform="rotate(45 12 12)"/></svg>
+      </div>
+      <button class="send-btn" onclick="sendMessage()">
+        <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+      </button>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  // ===================== STATE =====================
+  let API_KEY = '';
+  let USE_AI = false;
+  let conversationHistory = [];
+  let isTyping = false;
+
+  const SYSTEM_PROMPT = `Eres el asistente de PlataYa, una app de envio de dinero de Estados Unidos a Republica Dominicana. Ayudas a los usuarios a enviar dinero a sus familias de forma rapida y barata. Tu tarifa es 3% vs Western Union que cobra 6.4%. La tasa de cambio es 58.50 DOP por dolar. Cuando el usuario confirma un envio, genera un PIN de 6 digitos para retiro en cajero automatico Banreservas sin tarjeta. Responde siempre en espanol, de forma amigable y calida como si hablaras con un familiar.
+
+INSTRUCCIONES IMPORTANTES:
+- Cuando menciones montos y comisiones, se claro con los numeros
+- La tasa de cambio hoy: 1 USD = 58.50 DOP
+- Comision PlataYa: 3% del monto enviado
+- Comision Western Union: 6.4% del monto enviado
+- Despues de que el usuario diga el nombre del destinatario, SIEMPRE pregunta como quiere que reciba el dinero y ofrece 3 opciones: 1) Cajero sin tarjeta (ATM) - retiro con PIN en cajeros Banreservas, 2) Deposito bancario - directo a cuenta en cualquier banco de RD, 3) Recogida en efectivo - en agentes y farmacias autorizadas
+- Para cajero sin tarjeta: genera un PIN aleatorio de 6 digitos para retiro en cajero Banreservas
+- Para deposito bancario: confirma que el deposito se completa en menos de 30 minutos
+- Para recogida en efectivo: genera un codigo de 6 digitos para recoger en agentes autorizados
+- Manten las respuestas cortas y conversacionales, como mensajes de WhatsApp
+- No uses markdown ni formato especial, solo texto plano
+- Si es la primera interaccion, saludalos calidamente y pregunta como puedes ayudar`;
+
+  // ===================== SCRIPTED FALLBACK =====================
+  const SCRIPTED_FLOW = [
+    {
+      trigger: null,
+      response: "Hola! Bienvenido a PlataYa! Soy tu asistente para envios de dinero a Republica Dominicana. Como te puedo ayudar hoy?",
+      quickReplies: ["Quiero enviar dinero", "Cuanto cobran?", "Como funciona?"]
+    },
+    {
+      trigger: /enviar|mandar|plata|dinero/i,
+      response: "Perfecto! Con mucho gusto te ayudo a enviar dinero a RD. Cuanto quieres enviar? Puedes decirme el monto en dolares.",
+      quickReplies: ["$100", "$200", "$500"]
+    },
+    {
+      trigger: /cobr|tarifa|comisi|precio|cuanto/i,
+      response: "Nuestra comision es solo el 3% del monto que envias. Por ejemplo, si envias $200, pagas solo $6 de comision. Western Union cobra 6.4%, que serian $12.80 por los mismos $200. Te ahorras mas de la mitad!",
+      quickReplies: ["Quiero enviar $200", "Y la tasa de cambio?"]
+    },
+    {
+      trigger: /funciona|como es/i,
+      response: "Es super facil! Tu me dices cuanto quieres enviar y a quien, yo te muestro el desglose completo con comision y tasa de cambio. Cuando confirmas, tu familiar recibe un PIN de 6 digitos para retirar en cualquier cajero Banreservas sin tarjeta. Asi de sencillo!",
+      quickReplies: ["Quiero enviar dinero", "Cuanto cobran?"]
+    },
+    {
+      trigger: /tasa|cambio|dop|peso/i,
+      response: "La tasa de cambio hoy es de 58.50 pesos dominicanos por cada dolar. Es la tasa del mercado, sin margen escondido!",
+      quickReplies: ["Quiero enviar $200", "Quiero enviar $500"]
+    },
+    {
+      trigger: /\$?\s*100\b/,
+      response: "Excelente! Para un envio de $100:\n\nMonto: $100.00 USD\nComision PlataYa: $3.00 (3%)\nTotal a pagar: $103.00\n\nTu familiar recibe: 5,850.00 DOP\n(Tasa: 58.50 DOP/USD)\n\nCon Western Union pagarias $6.40 de comision. Con PlataYa te ahorras $3.40!\n\nA quien le envias? Dime el nombre del destinatario.",
+      quickReplies: ["Maria Rodriguez", "Juan Perez"],
+      feeCard: { amount: 100 }
+    },
+    {
+      trigger: /\$?\s*200\b/,
+      response: "Perfecto! Para un envio de $200:\n\nMonto: $200.00 USD\nComision PlataYa: $6.00 (3%)\nTotal a pagar: $206.00\n\nTu familiar recibe: 11,700.00 DOP\n(Tasa: 58.50 DOP/USD)\n\nCon Western Union pagarias $12.80 de comision. Con PlataYa te ahorras $6.80!\n\nA quien le envias? Dime el nombre del destinatario.",
+      quickReplies: ["Maria Rodriguez", "Juan Perez"],
+      feeCard: { amount: 200 }
+    },
+    {
+      trigger: /\$?\s*500\b/,
+      response: "Excelente! Para un envio de $500:\n\nMonto: $500.00 USD\nComision PlataYa: $15.00 (3%)\nTotal a pagar: $515.00\n\nTu familiar recibe: 29,250.00 DOP\n(Tasa: 58.50 DOP/USD)\n\nCon Western Union pagarias $32.00 de comision. Con PlataYa te ahorras $17.00!\n\nA quien le envias? Dime el nombre del destinatario.",
+      quickReplies: ["Maria Rodriguez", "Juan Perez"],
+      feeCard: { amount: 500 }
+    },
+    {
+      trigger: /maria|juan|carlos|ana|jose|rosa|pedro|nombre|mama|papa|hermano|hermana|tia|abuela/i,
+      response: null, // dynamically set
+      quickReplies: [],
+      getName: true,
+      showDeliveryOptions: true
+    },
+    {
+      trigger: /cajero|atm|sin tarjeta|pin/i,
+      response: null,
+      quickReplies: ["Si, confirmar envio", "No, cambiar monto"],
+      isDeliveryChoice: true,
+      deliveryMethod: 'atm'
+    },
+    {
+      trigger: /deposito|bancario|banco|cuenta/i,
+      response: null,
+      quickReplies: ["Si, confirmar envio", "No, cambiar monto"],
+      isDeliveryChoice: true,
+      deliveryMethod: 'bank'
+    },
+    {
+      trigger: /recogida|efectivo|agente|farmacia|cash/i,
+      response: null,
+      quickReplies: ["Si, confirmar envio", "No, cambiar monto"],
+      isDeliveryChoice: true,
+      deliveryMethod: 'cash'
+    },
+    {
+      trigger: /si|confirm|dale|ok|listo|va(?!lid)|enviar(?! dinero)|manda/i,
+      response: null, // dynamically set
+      quickReplies: ["Enviar mas dinero", "Gracias!"],
+      isConfirm: true
+    },
+    {
+      trigger: /gracia|thank|genial|excelente|perfecto/i,
+      response: "De nada! Fue un placer ayudarte. Recuerda que con PlataYa siempre tienes las mejores tarifas para enviar dinero a RD. Si necesitas algo mas, aqui estoy! Que tengas un excelente dia!",
+      quickReplies: ["Enviar mas dinero"]
+    },
+    {
+      trigger: /mas dinero|otro envio|de nuevo/i,
+      response: "Claro que si! Cuanto quieres enviar esta vez?",
+      quickReplies: ["$100", "$200", "$500"]
+    }
+  ];
+
+  let lastAmount = 200;
+  let recipientName = '';
+  let deliveryMethod = '';
+  let scriptStep = 0;
+
+  // ===================== HELPERS =====================
+  function getTime() {
+    const now = new Date();
+    let h = now.getHours();
+    let m = now.getMinutes();
+    const ampm = h >= 12 ? 'p.m.' : 'a.m.';
+    h = h % 12 || 12;
+    m = m < 10 ? '0' + m : m;
+    return `${h}:${m} ${ampm}`;
+  }
+
+  function generatePIN() {
+    return Math.floor(100000 + Math.random() * 900000).toString();
+  }
+
+  function scrollToBottom() {
+    const body = document.getElementById('chatBody');
+    setTimeout(() => { body.scrollTop = body.scrollHeight; }, 50);
+  }
+
+  // ===================== UI =====================
+  function addMessage(text, isSent, extras = {}) {
+    const body = document.getElementById('chatBody');
+    const row = document.createElement('div');
+    row.className = `msg-row ${isSent ? 'sent' : 'received'}`;
+
+    const bubble = document.createElement('div');
+    bubble.className = 'msg-bubble';
+
+    // Text content
+    const textEl = document.createElement('span');
+    textEl.textContent = text;
+    bubble.appendChild(textEl);
+
+    // Fee comparison card
+    if (extras.feeCard) {
+      const amt = extras.feeCard.amount;
+      const pyFee = amt * 0.03;
+      const wuFee = amt * 0.064;
+      const savings = wuFee - pyFee;
+      const dop = (amt * 58.50).toLocaleString('en-US', { minimumFractionDigits: 2 });
+
+      const card = document.createElement('div');
+      card.className = 'fee-card';
+      card.innerHTML = `
+        <div class="fee-card-title">Comparacion de Tarifas</div>
+        <div class="fee-row">
+          <span class="fee-label">PlataYa (3%)</span>
+          <span class="fee-value good">$${pyFee.toFixed(2)}</span>
+        </div>
+        <div class="fee-row">
+          <span class="fee-label">Western Union (6.4%)</span>
+          <span class="fee-value bad">$${wuFee.toFixed(2)}</span>
+        </div>
+        <div class="fee-row">
+          <span class="fee-label">Tu familiar recibe</span>
+          <span class="fee-value good">${dop} DOP</span>
+        </div>
+        <div class="fee-savings">Ahorras $${savings.toFixed(2)} con PlataYa</div>
+      `;
+      bubble.appendChild(card);
+    }
+
+    // Delivery options card
+    if (extras.deliveryCard) {
+      const card = document.createElement('div');
+      card.className = 'delivery-card';
+      card.innerHTML = `
+        <div class="delivery-card-title">Como quieres que reciba el dinero?</div>
+        <div class="delivery-option" onclick="document.getElementById('userInput').value='Cajero sin tarjeta';sendMessage();">
+          <div class="delivery-option-icon atm">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="14" rx="2" stroke="#fff" stroke-width="2"/><line x1="3" y1="10" x2="21" y2="10" stroke="#fff" stroke-width="2"/><rect x="6" y="13" width="3" height="2" rx="0.5" fill="#fff"/><rect x="11" y="13" width="3" height="2" rx="0.5" fill="#fff"/><line x1="12" y1="18" x2="12" y2="22" stroke="#fff" stroke-width="2"/><line x1="8" y1="22" x2="16" y2="22" stroke="#fff" stroke-width="2"/></svg>
+          </div>
+          <div class="delivery-option-info">
+            <div class="delivery-option-name">Cajero sin tarjeta (ATM)</div>
+            <div class="delivery-option-desc">Retiro con PIN en cajeros Banreservas</div>
+          </div>
+          <span class="delivery-option-badge popular">Popular</span>
+        </div>
+        <div class="delivery-option" onclick="document.getElementById('userInput').value='Deposito bancario';sendMessage();">
+          <div class="delivery-option-icon bank">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M3 21h18v-2H3v2zm0-4h18v-6H3v6zm2-4h2v2H5v-2zm4 0h2v2H9v-2zm4 0h2v2h-2v-2zM3 9h18L12 3 3 9z" fill="#fff"/></svg>
+          </div>
+          <div class="delivery-option-info">
+            <div class="delivery-option-name">Deposito bancario</div>
+            <div class="delivery-option-desc">Directo a cuenta en cualquier banco RD</div>
+          </div>
+          <span class="delivery-option-badge fast">Rapido</span>
+        </div>
+        <div class="delivery-option" onclick="document.getElementById('userInput').value='Recogida en efectivo';sendMessage();">
+          <div class="delivery-option-icon cash">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="2" y="6" width="20" height="12" rx="2" stroke="#fff" stroke-width="2"/><circle cx="12" cy="12" r="3" stroke="#fff" stroke-width="2"/><line x1="6" y1="12" x2="6" y2="12.01" stroke="#fff" stroke-width="2" stroke-linecap="round"/><line x1="18" y1="12" x2="18" y2="12.01" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>
+          </div>
+          <div class="delivery-option-info">
+            <div class="delivery-option-name">Recogida en efectivo</div>
+            <div class="delivery-option-desc">En agentes y farmacias autorizadas</div>
+          </div>
+        </div>
+      `;
+      bubble.appendChild(card);
+    }
+
+    // Bank deposit card
+    if (extras.bankCard) {
+      const card = document.createElement('div');
+      card.className = 'bank-card';
+      card.innerHTML = `
+        <div class="bank-card-label">Deposito Bancario Confirmado</div>
+        <div class="bank-card-amount">${extras.bankCard.dop} DOP</div>
+        <div class="bank-card-ref">${extras.bankCard.ref}</div>
+        <div class="bank-card-info">Se completa en menos de 30 minutos<br>Notificacion al destinatario automatica</div>
+      `;
+      bubble.appendChild(card);
+    }
+
+    // PIN card
+    if (extras.pinCard) {
+      const card = document.createElement('div');
+      card.className = 'pin-card';
+      const isCash = extras.pinCard.isCash;
+      const label = isCash ? 'Codigo de Recogida' : 'PIN de Retiro - Cajero Banreservas';
+      const info = isCash
+        ? 'Valido por 72 horas<br>Recogida en agentes y farmacias autorizadas'
+        : 'Valido por 72 horas<br>Retiro sin tarjeta en cualquier cajero Banreservas';
+      card.innerHTML = `
+        <div class="pin-card-label">${label}</div>
+        <div class="pin-card-number">${extras.pinCard.pin}</div>
+        <div class="pin-card-info">${info}</div>
+      `;
+      bubble.appendChild(card);
+    }
+
+    // Timestamp
+    const time = document.createElement('span');
+    time.className = 'msg-time';
+    time.innerHTML = getTime();
+    if (isSent) {
+      time.innerHTML += '<svg viewBox="0 0 16 11"><path d="M11.07.66L5.4 7.66 3.29 5.17l-.96 1.1L5.4 9.88l6.63-8.12z"/><path d="M7.67.66L2 7.66-.11 5.17l-.96 1.1L2 9.88 8.63 1.76z" transform="translate(3.5 0)"/></svg>';
+    }
+    bubble.appendChild(time);
+
+    row.appendChild(bubble);
+    body.appendChild(row);
+    scrollToBottom();
+  }
+
+  function showTyping() {
+    if (isTyping) return;
+    isTyping = true;
+    const body = document.getElementById('chatBody');
+    const row = document.createElement('div');
+    row.className = 'msg-row received';
+    row.id = 'typingRow';
+    const bubble = document.createElement('div');
+    bubble.className = 'msg-bubble';
+    bubble.innerHTML = '<div class="typing-indicator"><span></span><span></span><span></span></div>';
+    row.appendChild(bubble);
+    body.appendChild(row);
+    document.getElementById('headerStatus').textContent = 'escribiendo...';
+    scrollToBottom();
+  }
+
+  function hideTyping() {
+    isTyping = false;
+    const el = document.getElementById('typingRow');
+    if (el) el.remove();
+    document.getElementById('headerStatus').textContent = 'en linea';
+  }
+
+  function setQuickReplies(replies) {
+    const container = document.getElementById('quickReplies');
+    container.innerHTML = '';
+    if (!replies || replies.length === 0) return;
+    replies.forEach(text => {
+      const chip = document.createElement('button');
+      chip.className = 'quick-chip';
+      chip.textContent = text;
+      chip.onclick = () => {
+        document.getElementById('userInput').value = text;
+        sendMessage();
+      };
+      container.appendChild(chip);
+    });
+  }
+
+  // ===================== AI CALL =====================
+  async function callClaude(userMessage) {
+    conversationHistory.push({ role: 'user', content: userMessage });
+
+    try {
+      const response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': API_KEY,
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true'
+        },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 512,
+          system: SYSTEM_PROMPT,
+          messages: conversationHistory
+        })
+      });
+
+      if (!response.ok) throw new Error(`API error: ${response.status}`);
+      const data = await response.json();
+      const assistantMsg = data.content[0].text;
+      conversationHistory.push({ role: 'assistant', content: assistantMsg });
+      return { text: assistantMsg };
+    } catch (err) {
+      console.error('Claude API error:', err);
+      return null;
+    }
+  }
+
+  // ===================== SCRIPTED RESPONSE =====================
+  function getScriptedResponse(userMessage) {
+    // Detect amounts
+    const amountMatch = userMessage.match(/\$?\s*(\d+)/);
+    if (amountMatch) lastAmount = parseInt(amountMatch[1]);
+
+    for (const step of SCRIPTED_FLOW) {
+      if (step.trigger && step.trigger.test(userMessage)) {
+        let text = step.response;
+        let extras = {};
+
+        if (step.feeCard) {
+          extras.feeCard = { amount: lastAmount };
+        }
+
+        if (step.getName) {
+          // Extract name
+          const words = userMessage.trim().split(/\s+/);
+          recipientName = words.length >= 2 ? words.slice(0, 2).map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ') : words[0].charAt(0).toUpperCase() + words[0].slice(1).toLowerCase();
+          if (/mama|papa|hermano|hermana|tia|abuela/i.test(userMessage)) {
+            recipientName = userMessage.trim().charAt(0).toUpperCase() + userMessage.trim().slice(1);
+          }
+          text = `Perfecto, ${recipientName}! Ahora dime, como quieres que reciba el dinero?`;
+          if (step.showDeliveryOptions) {
+            extras.deliveryCard = true;
+          }
+        }
+
+        if (step.isDeliveryChoice) {
+          deliveryMethod = step.deliveryMethod;
+          const methodNames = { atm: 'Cajero sin tarjeta (ATM)', bank: 'Deposito bancario', cash: 'Recogida en efectivo' };
+          const total = (lastAmount * 1.03).toFixed(2);
+          const dop = (lastAmount * 58.50).toLocaleString('en-US', { minimumFractionDigits: 2 });
+          const name = recipientName || 'tu familiar';
+          text = `Excelente! Aqui esta el resumen de tu envio:\n\nDestinatario: ${name}\nMetodo de entrega: ${methodNames[deliveryMethod]}\nMonto: $${lastAmount}.00 USD\nComision (3%): $${(lastAmount * 0.03).toFixed(2)}\nTotal a pagar: $${total}\n\nTu familiar recibe: ${dop} DOP\n\nTodo correcto? Confirma para enviar!`;
+        }
+
+        if (step.isConfirm) {
+          const pin = generatePIN();
+          const name = recipientName || 'tu familiar';
+          const method = deliveryMethod || 'atm';
+          if (method === 'atm') {
+            text = `Listo! Tu envio ha sido procesado!\n\n${name} puede retirar el dinero en cualquier cajero automatico Banreservas con este PIN:`;
+            extras.pinCard = { pin: pin };
+          } else if (method === 'bank') {
+            const ref = '#PY' + Date.now().toString().slice(-8);
+            const dop = (lastAmount * 58.50).toLocaleString('en-US', { minimumFractionDigits: 2 });
+            text = `Listo! Tu envio ha sido procesado!\n\nEl deposito a la cuenta de ${name} se completara en menos de 30 minutos. Le enviaremos una notificacion cuando el dinero este disponible.`;
+            extras.bankCard = { dop: dop, ref: ref };
+          } else if (method === 'cash') {
+            text = `Listo! Tu envio ha sido procesado!\n\n${name} puede recoger el dinero en cualquier agente autorizado o farmacia con este codigo:`;
+            extras.pinCard = { pin: pin, isCash: true };
+          }
+        }
+
+        return { text, quickReplies: step.quickReplies, extras };
+      }
+    }
+
+    // Fallback
+    return {
+      text: "Disculpa, no entendi bien. Te puedo ayudar a enviar dinero a Republica Dominicana. Quieres hacer un envio?",
+      quickReplies: ["Quiero enviar dinero", "Cuanto cobran?", "Como funciona?"],
+      extras: {}
+    };
+  }
+
+  // ===================== SEND / RECEIVE =====================
+  async function sendMessage() {
+    const input = document.getElementById('userInput');
+    const text = input.value.trim();
+    if (!text || isTyping) return;
+
+    input.value = '';
+    input.style.height = 'auto';
+    setQuickReplies([]);
+    addMessage(text, true);
+
+    // Delay then respond
+    showTyping();
+    const delay = 800 + Math.random() * 1200;
+
+    if (USE_AI) {
+      const result = await callClaude(text);
+      hideTyping();
+      if (result) {
+        // Check for PIN pattern in AI response
+        const pinMatch = result.text.match(/\b(\d{6})\b/);
+        const hasPIN = pinMatch && (result.text.toLowerCase().includes('pin') || result.text.toLowerCase().includes('retir'));
+        const extras = {};
+        if (hasPIN) {
+          extras.pinCard = { pin: pinMatch[1] };
+          // Remove the PIN from text to avoid duplication
+          result.text = result.text.replace(pinMatch[1], '').replace(/\n\n\n/g, '\n\n');
+        }
+
+        // Check for fee comparison in response
+        const amtMatch = text.match(/\$?\s*(\d+)/);
+        if (amtMatch && (result.text.includes('Western Union') || result.text.includes('comision'))) {
+          extras.feeCard = { amount: parseInt(amtMatch[1]) };
+        }
+
+        // Check for delivery options prompt in AI response
+        const lowerText = result.text.toLowerCase();
+        if (lowerText.includes('cajero') && lowerText.includes('deposito') && lowerText.includes('efectivo')) {
+          extras.deliveryCard = true;
+        }
+
+        addMessage(result.text, false, extras);
+        // Generate contextual quick replies
+        if (hasPIN || lowerText.includes('procesado') || lowerText.includes('referencia')) {
+          setQuickReplies(["Enviar mas dinero", "Gracias!"]);
+        } else if (extras.deliveryCard) {
+          setQuickReplies(["Cajero sin tarjeta", "Deposito bancario", "Recogida en efectivo"]);
+        } else if (lowerText.includes('cuanto') || lowerText.includes('monto')) {
+          setQuickReplies(["$100", "$200", "$500"]);
+        } else if (lowerText.includes('destinatario') || lowerText.includes('quien')) {
+          setQuickReplies(["Maria Rodriguez", "Juan Perez"]);
+        } else if (lowerText.includes('confirm') || lowerText.includes('correcto')) {
+          setQuickReplies(["Si, confirmar envio", "No, cambiar monto"]);
+        } else if (lowerText.includes('como quieres que reciba') || lowerText.includes('metodo de entrega')) {
+          setQuickReplies(["Cajero sin tarjeta", "Deposito bancario", "Recogida en efectivo"]);
+        } else {
+          setQuickReplies(["Quiero enviar dinero", "Cuanto cobran?"]);
+        }
+      } else {
+        // Fallback to scripted if API fails
+        const scripted = getScriptedResponse(text);
+        addMessage(scripted.text, false, scripted.extras || {});
+        setQuickReplies(scripted.quickReplies);
+      }
+    } else {
+      setTimeout(() => {
+        hideTyping();
+        const scripted = getScriptedResponse(text);
+        addMessage(scripted.text, false, scripted.extras || {});
+        setQuickReplies(scripted.quickReplies);
+      }, delay);
+    }
+  }
+
+  function handleKey(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+    // Auto resize
+    const el = e.target;
+    setTimeout(() => {
+      el.style.height = 'auto';
+      el.style.height = Math.min(el.scrollHeight, 100) + 'px';
+    }, 0);
+  }
+
+  // ===================== STARTUP =====================
+  function startDemo() {
+    document.getElementById('splash').classList.add('hidden');
+    document.getElementById('apiModal').classList.remove('hidden');
+  }
+
+  function saveApiKey() {
+    const key = document.getElementById('apiKeyInput').value.trim();
+    if (key) {
+      API_KEY = key;
+      USE_AI = true;
+    }
+    document.getElementById('apiModal').classList.add('hidden');
+    beginChat();
+  }
+
+  function skipApiKey() {
+    USE_AI = false;
+    document.getElementById('apiModal').classList.add('hidden');
+    beginChat();
+  }
+
+  function beginChat() {
+    // Initial greeting from PlataYa
+    setTimeout(() => {
+      showTyping();
+      setTimeout(() => {
+        hideTyping();
+        if (USE_AI) {
+          // Send an initial system-triggered greeting
+          callClaude('Hola').then(result => {
+            if (result) {
+              addMessage(result.text, false);
+              setQuickReplies(["Quiero enviar dinero", "Cuanto cobran?", "Como funciona?"]);
+            } else {
+              addMessage(SCRIPTED_FLOW[0].response, false);
+              setQuickReplies(SCRIPTED_FLOW[0].quickReplies);
+            }
+          });
+        } else {
+          addMessage(SCRIPTED_FLOW[0].response, false);
+          setQuickReplies(SCRIPTED_FLOW[0].quickReplies);
+        }
+      }, 1200);
+    }, 500);
+  }
+</script>
+</body>
+</html>
