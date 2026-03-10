@@ -95,6 +95,24 @@ export const useStore = create<AppStore>((set, get) => ({
     }, 2000);
     setTimeout(() => {
       get().updateTransactionStatus(tx.id, 'ready');
+
+      // Send WhatsApp notification when ready for pickup/deposit
+      const msgType =
+        tx.cashOutMethod === 'atm' ? 'pickup_code' :
+        tx.cashOutMethod === 'agent' ? 'agent_pickup' : 'bank_deposit';
+
+      fetch('/api/whatsapp/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: msgType,
+          phone: recipient.phone,
+          recipientName: recipient.fullName,
+          amountDop: tx.amountDop,
+          pickupCode: tx.pickupCode,
+          referenceNumber: tx.referenceNumber,
+        }),
+      }).catch((err) => console.error('[WhatsApp] Failed to send notification:', err));
     }, 5000);
 
     return tx;
@@ -121,12 +139,28 @@ export const useStore = create<AppStore>((set, get) => ({
   },
 
   sendKycInvite: (id) => {
+    const recipient = get().recipients.find((r) => r.id === id);
+
     // Mark as pending — invite sent to recipient's phone
     set((s) => ({
       recipients: s.recipients.map((r) =>
         r.id === id ? { ...r, kycStatus: 'pending' as const } : r
       ),
     }));
+
+    // Send KYC invite via WhatsApp
+    if (recipient) {
+      fetch('/api/whatsapp/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'kyc_invite',
+          phone: recipient.phone,
+          recipientName: recipient.fullName,
+        }),
+      }).catch((err) => console.error('[WhatsApp] Failed to send KYC invite:', err));
+    }
+
     // Simulate recipient completing KYC on their phone
     setTimeout(() => {
       set((s) => ({
