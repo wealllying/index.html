@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { handleMessage } from '@/lib/bot/handler';
 import { sendWhatsAppText } from '@/lib/whatsapp';
+import { flushNotifications } from '@/lib/bot/wallet-handler';
 
 /**
  * GET  — Meta webhook verification (one-time setup).
@@ -79,6 +80,17 @@ export async function POST(req: NextRequest) {
             console.log(`[WhatsApp reply] to=${from} length=${reply.length}`);
           } catch (sendErr) {
             console.error(`[WhatsApp reply failed] to=${from}`, sendErr);
+          }
+
+          // Send any queued wallet notifications (top-up broadcasts, spend alerts, etc.)
+          const walletNotifications = flushNotifications();
+          for (const notif of walletNotifications) {
+            try {
+              await sendWhatsAppText(notif.to, notif.message);
+              console.log(`[WhatsApp wallet notif] to=${notif.to} length=${notif.message.length}`);
+            } catch (notifErr) {
+              console.error(`[WhatsApp wallet notif failed] to=${notif.to}`, notifErr);
+            }
           }
         }
       }

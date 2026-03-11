@@ -8,7 +8,21 @@ export type BotStep =
   | 'send_recipient_phone'
   | 'send_method'
   | 'send_confirm'
-  | 'status_ref';
+  | 'status_ref'
+  // Family Wallet steps
+  | 'wallet_menu'
+  | 'wallet_create_name'
+  | 'wallet_add_member_phone'
+  | 'wallet_add_member_name'
+  | 'wallet_topup_select'
+  | 'wallet_topup_amount'
+  | 'wallet_topup_confirm'
+  | 'wallet_spend_amount'
+  | 'wallet_spend_desc'
+  | 'wallet_spend_confirm'
+  | 'wallet_request_amount'
+  | 'wallet_request_reason'
+  | 'wallet_approve_select';
 
 export interface SendDraft {
   amountUsd?: number;
@@ -17,10 +31,21 @@ export interface SendDraft {
   method?: 'atm' | 'agent' | 'bank';
 }
 
+export interface WalletDraft {
+  walletId?: string;
+  walletName?: string;
+  memberPhone?: string;
+  memberName?: string;
+  amountUsd?: number;
+  description?: string;
+  requestId?: string;
+}
+
 export interface Session {
   phone: string;
   step: BotStep;
   draft: SendDraft;
+  walletDraft: WalletDraft;
   lang: 'es' | 'en';
   lastActivity: number;
 }
@@ -40,6 +65,7 @@ export function getSession(phone: string): Session {
     phone,
     step: 'idle',
     draft: {},
+    walletDraft: {},
     lang: 'es',
     lastActivity: Date.now(),
   };
@@ -57,6 +83,7 @@ export function resetSession(phone: string) {
   const session = getSession(phone);
   session.step = 'idle';
   session.draft = {};
+  session.walletDraft = {};
   session.lastActivity = Date.now();
 }
 

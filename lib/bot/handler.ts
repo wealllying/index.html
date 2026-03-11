@@ -2,6 +2,7 @@
 
 import { getSession, updateSession, resetSession, type BotStep } from './sessions';
 import { EXCHANGE_RATE, NETWORK_FEE, getPlatayaFee, generatePickupCode, generateReferenceNumber } from '../types';
+import { handleWalletMessage } from './wallet-handler';
 
 // ── Strings ──
 
@@ -18,6 +19,7 @@ const t = {
       `*3.* 🔍 Consultar estado de envio`,
       `*4.* ❓ Ayuda`,
       `*5.* 🇺🇸 Switch to English`,
+      `*6.* 👨‍👩‍👧‍👦 Wallet Familiar`,
     ].join('\n'),
 
     sendAmount: `💸 *Enviar dinero*\n\n¿Cuanto quieres enviar en dolares (USD)?\n\nEjemplo: *100*`,
@@ -145,6 +147,7 @@ const t = {
       `*3.* 🔍 Check transfer status`,
       `*4.* ❓ Help`,
       `*5.* 🇩🇴 Cambiar a Español`,
+      `*6.* 👨‍👩‍👧‍👦 Family Wallet`,
     ].join('\n'),
 
     sendAmount: `💸 *Send money*\n\nHow much do you want to send in USD?\n\nExample: *100*`,
@@ -303,6 +306,10 @@ export function handleMessage(from: string, text: string, senderName?: string): 
     resetSession(from);
     return s.help;
   }
+
+  // Try wallet handler first (handles all wallet_* steps and wallet entry)
+  const walletReply = handleWalletMessage(from, text, senderName);
+  if (walletReply) return walletReply;
 
   // Language switch
   if (lower === '5' && session.step === 'idle') {
