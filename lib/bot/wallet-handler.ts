@@ -533,7 +533,7 @@ function queueNotification(to: string, message: string) {
 // ── Main wallet handler ──
 // Returns a reply string if this message was handled, or null if not a wallet flow
 
-export function handleWalletMessage(from: string, text: string, senderName?: string): string | null {
+export async function handleWalletMessage(from: string, text: string, senderName?: string): Promise<string | null> {
   const session = getSession(from);
   const s = wt[session.lang];
   const input = text.trim();
@@ -541,7 +541,7 @@ export function handleWalletMessage(from: string, text: string, senderName?: str
 
   // ── Entry point: wallet command ──
   if (session.step === 'idle' && (lower === '6' || lower === 'wallet' || lower === 'billetera')) {
-    const wallet = getPrimaryWallet(from);
+    const wallet = await getPrimaryWallet(from);
 
     if (wallet) {
       updateSession(from, { step: 'wallet_menu', walletDraft: { walletId: wallet.id } });
@@ -554,7 +554,7 @@ export function handleWalletMessage(from: string, text: string, senderName?: str
 
   // ── Accept invite (can come from idle if member received invite) ──
   if (session.step === 'idle' && (lower === 'aceptar' || lower === 'accept')) {
-    return handleAcceptInvite(from, s);
+    return await handleAcceptInvite(from, s);
   }
 
   // ── Create wallet: name ──
@@ -563,14 +563,15 @@ export function handleWalletMessage(from: string, text: string, senderName?: str
       return session.lang === 'es' ? '⚠️ Escribe un nombre para el wallet.' : '⚠️ Enter a name for the wallet.';
     }
     const name = senderName ?? from;
-    const wallet = createWallet(input, from, name);
+    const wallet = await createWallet(input, from, name);
+    if (!wallet) return session.lang === 'es' ? '⚠️ Error al crear el wallet.' : '⚠️ Error creating wallet.';
     updateSession(from, { step: 'wallet_menu', walletDraft: { walletId: wallet.id } });
     return s.walletCreated(input);
   }
 
   // ── Wallet menu selection ──
   if (session.step === 'wallet_menu') {
-    const wallet = session.walletDraft.walletId ? getPrimaryWallet(from) : null;
+    const wallet = session.walletDraft.walletId ? await getPrimaryWallet(from) : null;
     if (!wallet) {
       resetSession(from);
       return s.noWallet;
@@ -580,7 +581,7 @@ export function handleWalletMessage(from: string, text: string, senderName?: str
 
     // 1 — Balance
     if (lower === '1' || lower === 'saldo' || lower === 'balance') {
-      const recentTxs = getRecentTransactions(wallet.id, 5).map((tx) => ({
+      const recentTxs = (await getRecentTransactions(wallet.id, 5)).map((tx) => ({
         type: tx.type,
         memberName: getMemberName(wallet, tx.memberPhone),
         amount: tx.amountUsd,
@@ -614,7 +615,7 @@ export function handleWalletMessage(from: string, text: string, senderName?: str
           ? '⚠️ Solo el dueño del wallet puede aprobar solicitudes.'
           : '⚠️ Only the wallet owner can approve requests.';
       }
-      const pending = getPendingRequests(wallet.id);
+      const pending = await getPendingRequests(wallet.id);
       const formatted = pending.map((r) => ({
         requesterName: getMemberName(wallet, r.requesterPhone),
         amount: r.amountUsd,
@@ -673,10 +674,10 @@ export function handleWalletMessage(from: string, text: string, senderName?: str
     if (input.length < 1) {
       return session.lang === 'es' ? '⚠️ Escribe el nombre.' : '⚠️ Enter the name.';
     }
-    const wallet = session.walletDraft.walletId ? getPrimaryWallet(from) : null;
+    const wallet = session.walletDraft.walletId ? await getPrimaryWallet(from) : null;
     if (!wallet) { resetSession(from); return s.noWallet; }
 
-    const member = addMember(wallet.id, session.walletDraft.memberPhone!, input);
+    const member = await addMember(wallet.id, session.walletDraft.memberPhone!, input);
     if (!member) { resetSession(from); return s.noWallet; }
 
     // Send invite to the new member
@@ -696,7 +697,7 @@ export function handleWalletMessage(from: string, text: string, senderName?: str
     if (isNaN(amount) || amount <= 0) return s.invalidAmount;
     if (amount < 1) return s.invalidAmount;
 
-    const wallet = session.walletDraft.walletId ? getPrimaryWallet(from) : null;
+    const wallet = session.walletDraft.walletId ? await getPrimaryWallet(from) : null;
     if (!wallet) { resetSession(from); return s.noWallet; }
 
     updateSession(from, {
@@ -706,31 +707,26 @@ export function handleWalletMessage(from: string, text: string, senderName?: str
     return s.topUpConfirm(amount, wallet.name);
   }
 
+  
   // ── Top up: confirm ──
   if (session.step === 'wallet_topup_confirm') {
     if (lower === 'si' || lower === 'sí' || lower === 'yes' || lower === 'y') {
-      const wallet = session.walletDraft.walletId ? getPrimaryWallet(from) : null;
+      const wallet = session.walletDraft.walletId ? await getPrimaryWallet(from) : null;
       if (!wallet) { resetSession(from); return s.noWallet; }
 
-      const tx = topUp(wallet.id, from, session.walletDraft.amountUsd!);
-      if (!tx) { resetSession(from); return s.noWallet; }
+      // 1. Simulate check KYC
+      const needsKyc = true; 
+      if (needsKyc) {
+        updateSession(from, { step: 'wallet_awaiting_kyc' });
+        return session.lang === 'es' ?
+          `🔒 *Verificación de Identidad*\n\nPara procesar tu pago, necesitamos verificar tu identidad por seguridad. Haz clic aquí para subir tu ID:\n\nhttps://plataya.app/kyc?session=${from}\n\nCuando termines, escribe *listo* aqui.` :
+          `🔒 *Identity Verification*\n\nTo process your payment, we must verify your identity for security. Click here to upload your ID:\n\nhttps://plataya.app/kyc?session=${from}\n\nWhen finished, type *done* here.`;
+      }
 
-      // Notify all other members
-      const senderMemberName = getMemberName(wallet, from);
-      wallet.members.forEach((m) => {
-        if (m.phone !== from && m.status === 'active') {
-          queueNotification(
-            m.phone,
-            wt[session.lang].topUpNotify(senderMemberName, tx.amountUsd, tx.balanceAfter, wallet.name),
-          );
-        }
-      });
-
-      updateSession(from, { step: 'wallet_menu', walletDraft: { walletId: wallet.id } });
-      return s.topUpDone(tx.amountUsd, tx.balanceAfter, wallet.name);
+      // If they were verified, we'd take them to checkout (covered in the next step anyway)
     }
     if (lower === 'no' || lower === 'n') {
-      const wallet = session.walletDraft.walletId ? getPrimaryWallet(from) : null;
+      const wallet = session.walletDraft.walletId ? await getPrimaryWallet(from) : null;
       updateSession(from, { step: 'wallet_menu', walletDraft: { walletId: wallet?.id } });
       return session.lang === 'es' ? '❌ Cancelado.\n\nEscribe *wallet* para ver el menu.' : '❌ Cancelled.\n\nType *wallet* to see the menu.';
     }
@@ -739,12 +735,32 @@ export function handleWalletMessage(from: string, text: string, senderName?: str
       : '⚠️ Type *YES* to confirm or *NO* to cancel.';
   }
 
+  // ── Top up: awaiting kyc ──
+  if (session.step === 'wallet_awaiting_kyc') {
+    if (lower === 'listo' || lower === 'done') {
+      const wallet = session.walletDraft.walletId ? await getPrimaryWallet(from) : null;
+      if (!wallet) { resetSession(from); return s.noWallet; }
+
+      // We don't magically top up here anymore, we generate a checkout link!
+      // When the webhook fires that they paid, the real `topUp` function would be called.
+      const amount = session.walletDraft.amountUsd!;
+      updateSession(from, { step: 'wallet_menu', walletDraft: { walletId: wallet.id } });
+      
+      return session.lang === 'es' ?
+        `💳 *Pago Pendiente*\n\nTu recarga de $100 USD está casi lista. Completa el pago de forma segura usando tu banco en este enlace:\n\nhttps://plataya.app/checkout?wallet=${wallet.id}&amount=${amount}\n\nTe notificaremos por aqui en cuanto recibamos los fondos.` :
+        `💳 *Payment Pending*\n\nYour top-up of $100 USD is almost ready. Complete the payment securely using your bank at this link:\n\nhttps://plataya.app/checkout?wallet=${wallet.id}&amount=${amount}\n\nWe will notify you here once we receive the funds.`;
+    }
+    return session.lang === 'es' 
+      ? '⚠️ Aún estamos esperando. Escribe *listo* cuando hayas subido tu documento en el enlace.' 
+      : '⚠️ Still waiting. Type *done* when you have uploaded your document at the link.';
+  }
+
   // ── Spend: amount ──
   if (session.step === 'wallet_spend_amount') {
     const amount = parseFloat(input.replace(/[$,]/g, ''));
     if (isNaN(amount) || amount <= 0) return s.invalidAmount;
 
-    const wallet = session.walletDraft.walletId ? getPrimaryWallet(from) : null;
+    const wallet = session.walletDraft.walletId ? await getPrimaryWallet(from) : null;
     if (!wallet) { resetSession(from); return s.noWallet; }
 
     if (amount > wallet.balanceUsd) return s.insufficientBalance(wallet.balanceUsd);
@@ -771,10 +787,10 @@ export function handleWalletMessage(from: string, text: string, senderName?: str
   // ── Spend: confirm ──
   if (session.step === 'wallet_spend_confirm') {
     if (lower === 'si' || lower === 'sí' || lower === 'yes' || lower === 'y') {
-      const wallet = session.walletDraft.walletId ? getPrimaryWallet(from) : null;
+      const wallet = session.walletDraft.walletId ? await getPrimaryWallet(from) : null;
       if (!wallet) { resetSession(from); return s.noWallet; }
 
-      const tx = spend(wallet.id, from, session.walletDraft.amountUsd!, session.walletDraft.description);
+      const tx = await spend(wallet.id, from, session.walletDraft.amountUsd!, session.walletDraft.description);
       if (!tx) {
         updateSession(from, { step: 'wallet_menu', walletDraft: { walletId: wallet.id } });
         return s.insufficientBalance(wallet.balanceUsd);
@@ -802,7 +818,7 @@ export function handleWalletMessage(from: string, text: string, senderName?: str
       return s.spendDone(tx.amountUsd, tx.description ?? '', tx.balanceAfter);
     }
     if (lower === 'no' || lower === 'n') {
-      const wallet = session.walletDraft.walletId ? getPrimaryWallet(from) : null;
+      const wallet = session.walletDraft.walletId ? await getPrimaryWallet(from) : null;
       updateSession(from, { step: 'wallet_menu', walletDraft: { walletId: wallet?.id } });
       return session.lang === 'es' ? '❌ Cancelado.\n\nEscribe *wallet* para ver el menu.' : '❌ Cancelled.\n\nType *wallet* to see the menu.';
     }
@@ -829,10 +845,10 @@ export function handleWalletMessage(from: string, text: string, senderName?: str
       return session.lang === 'es' ? '⚠️ Escribe la razon.' : '⚠️ Enter the reason.';
     }
 
-    const wallet = session.walletDraft.walletId ? getPrimaryWallet(from) : null;
+    const wallet = session.walletDraft.walletId ? await getPrimaryWallet(from) : null;
     if (!wallet) { resetSession(from); return s.noWallet; }
 
-    const request = createRequest(wallet.id, from, session.walletDraft.amountUsd!, input);
+    const request = await createRequest(wallet.id, from, session.walletDraft.amountUsd!, input);
     if (!request) { resetSession(from); return s.noWallet; }
 
     // Notify wallet owner
@@ -848,19 +864,19 @@ export function handleWalletMessage(from: string, text: string, senderName?: str
 
   // ── Approve requests: select or approve/deny ──
   if (session.step === 'wallet_approve_select') {
-    const wallet = session.walletDraft.walletId ? getPrimaryWallet(from) : null;
+    const wallet = session.walletDraft.walletId ? await getPrimaryWallet(from) : null;
     if (!wallet) { resetSession(from); return s.noWallet; }
 
     // If a request is already selected, handle approve/deny
     if (session.walletDraft.requestId) {
       if (lower === 'aprobar' || lower === 'approve') {
-        return handleApprove(from, wallet, session.walletDraft.requestId, session.lang);
+        return await handleApprove(from, wallet, session.walletDraft.requestId, session.lang);
       }
       if (lower === 'rechazar' || lower === 'deny') {
-        return handleDeny(from, wallet, session.walletDraft.requestId, session.lang);
+        return await handleDeny(from, wallet, session.walletDraft.requestId, session.lang);
       }
       // If neither, show the approve/deny prompt again
-      const req = getPendingRequests(wallet.id).find((r) => r.id === session.walletDraft.requestId);
+      const req = (await getPendingRequests(wallet.id)).find((r) => r.id === session.walletDraft.requestId);
       if (req) {
         const reqName = getMemberName(wallet, req.requesterPhone);
         return s.approveOrDeny(reqName, req.amountUsd, req.reason);
@@ -868,7 +884,7 @@ export function handleWalletMessage(from: string, text: string, senderName?: str
     }
 
     // No request selected yet — expect a number
-    const pending = getPendingRequests(wallet.id);
+    const pending = await getPendingRequests(wallet.id);
     const idx = parseInt(lower, 10);
 
     if (isNaN(idx) || idx < 1 || idx > pending.length) {
@@ -893,12 +909,12 @@ export function handleWalletMessage(from: string, text: string, senderName?: str
 }
 
 // ── Helper: accept invite ──
-function handleAcceptInvite(phone: string, s: typeof wt.es): string {
-  const memberWallets = getWalletsByMember(phone);
+async function handleAcceptInvite(phone: string, s: typeof wt.es): Promise<string> {
+  const memberWallets = await getWalletsByMember(phone);
   for (const w of memberWallets) {
     const member = w.members.find((m) => m.phone === phone && m.status === 'invited');
     if (member) {
-      activateMember(w.id, phone);
+      await activateMember(w.id, phone);
       updateSession(phone, { step: 'wallet_menu', walletDraft: { walletId: w.id } });
       return s.memberAccepted(w.name);
     }
@@ -907,9 +923,9 @@ function handleAcceptInvite(phone: string, s: typeof wt.es): string {
 }
 
 // ── Helper: approve request ──
-function handleApprove(from: string, wallet: FamilyWallet, requestId: string, lang: 'es' | 'en'): string {
+async function handleApprove(from: string, wallet: FamilyWallet, requestId: string, lang: 'es' | 'en'): Promise<string> {
   const s = wt[lang];
-  const result = approveRequest(wallet.id, requestId);
+  const result = await approveRequest(wallet.id, requestId);
   if (!result) {
     updateSession(from, { step: 'wallet_menu', walletDraft: { walletId: wallet.id } });
     return s.insufficientBalance(wallet.balanceUsd);
@@ -928,9 +944,9 @@ function handleApprove(from: string, wallet: FamilyWallet, requestId: string, la
 }
 
 // ── Helper: deny request ──
-function handleDeny(from: string, wallet: FamilyWallet, requestId: string, lang: 'es' | 'en'): string {
+async function handleDeny(from: string, wallet: FamilyWallet, requestId: string, lang: 'es' | 'en'): Promise<string> {
   const s = wt[lang];
-  const request = denyRequest(wallet.id, requestId);
+  const request = await denyRequest(wallet.id, requestId);
   if (!request) {
     updateSession(from, { step: 'wallet_menu', walletDraft: { walletId: wallet.id } });
     return s.noWallet;

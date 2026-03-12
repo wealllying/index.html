@@ -51,6 +51,32 @@ const t = {
 
     invalidMethod: `⚠️ Escribe *1*, *2* o *3* para elegir el metodo.`,
 
+    
+    sendMethodBankName: `🏦 *Deposito Bancario*\n\n¿Cual es el *nombre del banco* en Republica Dominicana?\n\nEjemplo: *Banco Popular* o *Banreservas*`,
+
+    sendMethodAccount: (bankName: string) =>
+      `🏦 Banco: *${bankName}*\n\n¿Cual es el *numero de cuenta*?\n\nEjemplo: *123456789*`,
+
+    requireSenderKyc: (url: string) => [
+      `🔒 *Verificacion de Identidad*`,
+      ``,
+      `Para procesar tu pago, necesitamos verificar tu identidad por seguridad. Haz clic en este enlace seguro para subir tu ID:`,
+      ``,
+      `${url}`,
+      ``,
+      `Cuando termines, escribe *listo* aqui.`,
+    ].join('\n'),
+
+    checkoutLink: (code: string, url: string) => [
+      `💳 *Pago Pendiente*`,
+      ``,
+      `Tu transferencia de PlataYa (${code}) esta casi lista. Completa el pago de forma segura usando tu banco en este enlace:`,
+      ``,
+      `${url}`,
+      ``,
+      `Te notificaremos por aqui en cuanto recibamos los fondos.`
+    ].join('\n'),
+
     sendConfirm: (usd: number, dop: number, fee: number, network: number, total: number, name: string, phone: string, method: string) => [
       `📋 *Resumen de tu envio:*`,
       ``,
@@ -179,6 +205,32 @@ const t = {
 
     invalidMethod: `⚠️ Type *1*, *2* or *3* to choose the method.`,
 
+    
+    sendMethodBankName: `🏦 *Deposito Bancario*\n\n¿Cual es el *nombre del banco* en Republica Dominicana?\n\nEjemplo: *Banco Popular* o *Banreservas*`,
+
+    sendMethodAccount: (bankName: string) =>
+      `🏦 Banco: *${bankName}*\n\n¿Cual es el *numero de cuenta*?\n\nEjemplo: *123456789*`,
+
+    requireSenderKyc: (url: string) => [
+      `🔒 *Verificacion de Identidad*`,
+      ``,
+      `Para procesar tu pago, necesitamos verificar tu identidad por seguridad. Haz clic en este enlace seguro para subir tu ID:`,
+      ``,
+      `${url}`,
+      ``,
+      `Cuando termines, escribe *listo* aqui.`,
+    ].join('\n'),
+
+    checkoutLink: (code: string, url: string) => [
+      `💳 *Pago Pendiente*`,
+      ``,
+      `Tu transferencia de PlataYa (${code}) esta casi lista. Completa el pago de forma segura usando tu banco en este enlace:`,
+      ``,
+      `${url}`,
+      ``,
+      `Te notificaremos por aqui en cuanto recibamos los fondos.`
+    ].join('\n'),
+
     sendConfirm: (usd: number, dop: number, fee: number, network: number, total: number, name: string, phone: string, method: string) => [
       `📋 *Transfer summary:*`,
       ``,
@@ -287,7 +339,7 @@ export function getBotTransaction(ref: string): BotTransaction | undefined {
 
 // ── Main handler ──
 
-export function handleMessage(from: string, text: string, senderName?: string): string {
+export async function handleMessage(from: string, text: string, senderName?: string): Promise<string> {
   const session = getSession(from);
   const s = t[session.lang];
   const input = text.trim();
@@ -308,7 +360,7 @@ export function handleMessage(from: string, text: string, senderName?: string): 
   }
 
   // Try wallet handler first (handles all wallet_* steps and wallet entry)
-  const walletReply = handleWalletMessage(from, text, senderName);
+  const walletReply = await handleWalletMessage(from, text, senderName);
   if (walletReply) return walletReply;
 
   // Language switch
@@ -380,6 +432,12 @@ export function handleMessage(from: string, text: string, senderName?: string): 
     else return s.invalidMethod;
 
     const draft = { ...session.draft, method };
+
+    if (method === 'bank') {
+      updateSession(from, { step: 'send_method_bank_name', draft });
+      return s.sendMethodBankName;
+    }
+
     updateSession(from, { step: 'send_confirm', draft });
 
     const usd = draft.amountUsd!;
@@ -389,11 +447,83 @@ export function handleMessage(from: string, text: string, senderName?: string): 
     return s.sendConfirm(usd, dop, fee, NETWORK_FEE, total, draft.recipientName!, draft.recipientPhone!, s.methodNames[method]);
   }
 
+
+  // ── Send flow: bank name ──
+  if (session.step === 'send_method_bank_name') {
+    if (input.length < 2) {
+      return session.lang === 'es' ? '⚠️ Escribe el nombre del banco.' : '⚠️ Enter the bank name.';
+    }
+    updateSession(from, { step: 'send_method_account', draft: { ...session.draft, bankName: input } });
+    return (s as any).sendMethodAccount(input);
+  }
+
+  // ── Send flow: bank account ──
+  if (session.step === 'send_method_account') {
+    if (input.length < 4) {
+      return session.lang === 'es' ? '⚠️ Numero de cuenta muy corto.' : '⚠️ Account number too short.';
+    }
+    const draft = { ...session.draft, bankAccountNumber: input };
+    updateSession(from, { step: 'send_confirm', draft });
+
+    const usd = draft.amountUsd!;
+    const dop = usd * EXCHANGE_RATE;
+    const fee = getPlatayaFee(usd);
+    const total = usd + fee + NETWORK_FEE;
+    return s.sendConfirm(usd, dop, fee, NETWORK_FEE, total, draft.recipientName!, draft.recipientPhone!, s.methodNames[draft.method!]);
+  }
+
+  // ── Send flow: awaiting kyc ──
+  if (session.step === 'awaiting_sender_kyc') {
+    if (lower === 'listo' || lower === 'done') {
+      // In a real app, we would verify the DB status here. For now, we simulate success and move to checkout.
+      const d = session.draft;
+      const ref = generateReferenceNumber();
+      // Simulate checking user KYC status. If this is a new user or first tx, they need KYC.
+      const needsKyc = true; // Hardcoded for demo purposes
+
+      if (needsKyc) {
+        updateSession(from, { step: 'awaiting_sender_kyc' });
+        return (s as any).requireSenderKyc(`https://plataya.app/kyc?session=${from}`);
+      }
+
+      const pickupCode = d.method === 'atm' ? generatePickupCode() : undefined;
+
+      const tx: BotTransaction = {
+        ref,
+        senderPhone: from,
+        recipientName: d.recipientName!,
+        recipientPhone: d.recipientPhone!,
+        amountUsd: d.amountUsd!,
+        amountDop: d.amountUsd! * EXCHANGE_RATE,
+        method: d.method!,
+        pickupCode,
+        status: 'pending_payment',
+        createdAt: new Date().toISOString(),
+      };
+      botTransactions.set(ref.toUpperCase(), tx);
+
+      resetSession(from);
+      return (s as any).checkoutLink(ref, `https://plataya.app/checkout?tx=${ref}`);
+    }
+
+    return session.lang === 'es' 
+      ? '⚠️ Aún estamos esperando. Escribe *listo* cuando hayas subido tu documento en el enlace.' 
+      : '⚠️ Still waiting. Type *done* when you have uploaded your document at the link.';
+  }
+
   // ── Send flow: confirm ──
   if (session.step === 'send_confirm') {
     if (lower === 'si' || lower === 'sí' || lower === 'yes' || lower === 'y') {
       const d = session.draft;
       const ref = generateReferenceNumber();
+      // Simulate checking user KYC status. If this is a new user or first tx, they need KYC.
+      const needsKyc = true; // Hardcoded for demo purposes
+
+      if (needsKyc) {
+        updateSession(from, { step: 'awaiting_sender_kyc' });
+        return (s as any).requireSenderKyc(`https://plataya.app/kyc?session=${from}`);
+      }
+
       const pickupCode = d.method === 'atm' ? generatePickupCode() : undefined;
 
       const tx: BotTransaction = {
@@ -433,8 +563,8 @@ export function handleMessage(from: string, text: string, senderName?: string): 
     if (!tx) return s.statusNotFound(ref);
 
     const statusLabels: Record<string, Record<string, string>> = {
-      es: { processing: 'Procesando', ready: 'Listo para retiro', picked_up: 'Retirado', cancelled: 'Cancelado' },
-      en: { processing: 'Processing', ready: 'Ready for pickup', picked_up: 'Picked up', cancelled: 'Cancelled' },
+      es: { pending_payment: 'Esperando Pago', processing: 'Procesando', ready: 'Listo para retiro', picked_up: 'Retirado', cancelled: 'Cancelado' },
+      en: { pending_payment: 'Waiting for Payment', processing: 'Processing', ready: 'Ready for pickup', picked_up: 'Picked up', cancelled: 'Cancelled' },
     };
 
     return s.statusFound(

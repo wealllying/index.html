@@ -9,6 +9,9 @@ export type BotStep =
   | 'send_method'
   | 'send_confirm'
   | 'status_ref'
+  | 'awaiting_sender_kyc'
+  | 'send_method_bank_name'
+  | 'send_method_account'
   // Family Wallet steps
   | 'wallet_menu'
   | 'wallet_create_name'
@@ -17,6 +20,7 @@ export type BotStep =
   | 'wallet_topup_select'
   | 'wallet_topup_amount'
   | 'wallet_topup_confirm'
+  | 'wallet_awaiting_kyc'
   | 'wallet_spend_amount'
   | 'wallet_spend_desc'
   | 'wallet_spend_confirm'
@@ -29,6 +33,8 @@ export interface SendDraft {
   recipientName?: string;
   recipientPhone?: string;
   method?: 'atm' | 'agent' | 'bank';
+  bankName?: string;
+  bankAccountNumber?: string;
 }
 
 export interface WalletDraft {

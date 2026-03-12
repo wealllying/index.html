@@ -72,7 +72,7 @@ export async function POST(req: NextRequest) {
           console.log(`[WhatsApp incoming] from=${from} name=${senderName ?? 'unknown'} text="${text}"`);
 
           // Get bot response
-          const reply = handleMessage(from, text, senderName);
+          const reply = await handleMessage(from, text, senderName);
 
           // Send reply back via WhatsApp
           try {
